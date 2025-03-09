@@ -13,7 +13,8 @@ class Config:
 	Attributes:
 		source_paths (list): List of source paths.
 		backup_path (str): Single backup path (remote, if ssh_path set).
-		ssh_path (str) | None: Path to remote ssh server.
+		ssh_path (str): Path to remote ssh server.
+		ssh_certs_path (str): Path to ssh certs for remote server.
 		retains (list): List of retain configurations.
 	'''
 
@@ -30,6 +31,7 @@ class Config:
 			- source_paths (list): List of source paths.
 			- backup_path (str): Single backup path (remote, if ssh_path set).
 			- ssh_path (str) | None: Path to remote ssh server.
+			- ssh_certs_path (str) | None: Path to ssh certs for remote server.
 			- retains (list): List of retain configurations.
 
 		Raises:
@@ -39,6 +41,7 @@ class Config:
 		self.source_paths = []
 		self.backup_path = ''
 		self.ssh_path = ''
+		self.ssh_certs_path = ''
 		self.retains = []
 
 		with open(config_path) as conf:
@@ -50,11 +53,12 @@ class Config:
 			for line in csv.reader(conf_raw, delimiter=delimiter):
 				filtered = list(filter(lambda x: x.strip(), line))
 				match filtered[0]:
-					case 'source': 	self.source_paths.append(filtered[1])
-					case 'backup': 	self.backup_path = filtered[1]
-					case 'ssh': 	self.ssh_path = filtered[1]
-					case 'retain':	self.retains.append(filtered[1:])
-					case _: 		print(f'Unknown configuration option "{filtered[0]}"')
+					case 'source': self.source_paths.append(filtered[1])
+					case 'backup': self.backup_path = filtered[1]
+					case 'ssh': self.ssh_path = filtered[1]
+					case 'ssh_certs': self.ssh_certs_path = filtered[1]
+					case 'retain': self.retains.append(filtered[1:])
+					case _: print(f'Unknown configuration option "{filtered[0]}"')
 
 		if len(self.source_paths) <= 0: raise ValueError("At least one source path needs to be set.")
 		if len(self.backup_path)  <= 0: raise ValueError("A backup path needs to be set.")
