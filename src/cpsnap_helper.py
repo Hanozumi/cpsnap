@@ -5,6 +5,10 @@
 	Copyright © 2025 Hanozumi
 '''
 
+import os
+import subprocess
+import getpass
+
 def query_y_n(query: str, yes_default=True) -> bool:
 	'''Queries the user with a yes/no prompt.
 
@@ -37,3 +41,33 @@ def query_y_n(query: str, yes_default=True) -> bool:
 			return valid[choice]
 		else:
 			print('Incorrect input. Try again.')
+
+def ask_create_r_u_dir(path: str, query: str, test=False):
+	'''Prompts user whether to create directory if it does not already exit.
+
+	Args:
+		path (str): Path to directory.
+		query (str): The question prompting the users input.
+		test (bool): Test mode status.
+	'''
+	if not os.path.isdir(path) and query_y_n(query):
+		print(f':: sudo install -d -m 0770 -o root -g {getpass.getuser()} {path}')
+		if not test:
+			result = subprocess.run(['sudo', 'install', '-d', '-m', '0770', '-o', 'root', '-g', getpass.getuser(), path],
+						   capture_output=True,
+						   text=True)
+			if result.stderr != '': print(result.stderr, end='')
+
+def create_r_u_dir(path:str, test=False):
+	'''Creates directory if it does not already exist.
+	
+	Args:
+		path (str): Path to directory.
+		test (bool): Test mode status.
+	'''
+	print(f':: sudo install -d -m 0770 -o root -g {getpass.getuser()} {path}')
+	if not test:
+			result = subprocess.run(['sudo', 'install', '-d', '-m', '0770', '-o', 'root', '-g', getpass.getuser(), path],
+						   capture_output=True,
+						   text=True)
+			if result.stderr != '': print(result.stderr, end='')
