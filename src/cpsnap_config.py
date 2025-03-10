@@ -7,6 +7,26 @@
 
 import csv
 
+class Retain:
+	'''Helper class to maintain retain options readability.
+
+	Attributes:
+		num (int): Number of retained backups.
+		mode (str): Backup mode.
+		name_func (str): Selected backup naming function.
+	'''
+	def __init__(self, num: int, mode: str, name_func: str):
+		'''Prepare a Retain-object, with given attributes.
+
+		Args:
+			num (int): Number of retained backups.
+			mode (str): Backup mode.
+			name_func (str): Selected backup naming function.
+		'''
+		self.num = num
+		self.mode = mode
+		self.name_func = name_func
+
 class Config:
 	'''Config class for managing .conf files.
 
@@ -15,7 +35,7 @@ class Config:
 		backup_path (str): Single backup path (remote, if ssh_path set).
 		ssh_path (str): Path to remote ssh server.
 		ssh_certs_path (str): Path to ssh certs for remote server.
-		retains (dict): Dictionary of retain configurations.
+		retains (dict[str, Retain]): Dictionary of retain objects.
 	'''
 
 	def __init__(self, config_path: str, c_char: str, delimiter: str):
@@ -32,7 +52,7 @@ class Config:
 			- backup_path (str): Single backup path (remote, if ssh_path set).
 			- ssh_path (str) | None: Path to remote ssh server.
 			- ssh_certs_path (str) | None: Path to ssh certs for remote server.
-			- retains (dict): Dictionary of retain configurations.
+			- retains (dict[str, Retain]): Dictionary of retain objects.
 
 		Raises:
 			ValueError: An invalid configuration options has been set or a configuration option is missing.
@@ -57,9 +77,12 @@ class Config:
 					case 'backup': self.backup_path = filtered[1]
 					case 'ssh': self.ssh_path = filtered[1]
 					case 'ssh_certs': self.ssh_certs_path = filtered[1]
-					case 'retain': self.retains[filtered[1]] = filtered[2:]
+					case 'retain': 
+						if len(filtered) != 5: 
+							raise ValueError(f'Invalid number of retain options for "{filtered[1]}". Needs retain <type> <num> <mode> <name_func>.')
+						self.retains[filtered[1]] = Retain(int(filtered[2]), filtered[3], filtered[4])
 					case _: print(f'Unknown configuration option "{filtered[0]}"')
 
-		if len(self.source_paths) <= 0: raise ValueError("At least one source path needs to be set.")
-		if len(self.backup_path)  <= 0: raise ValueError("A backup path needs to be set.")
-		if len(self.retains)	  <= 0: raise ValueError("At least one retain option needs to be set.")
+		if len(self.source_paths) <= 0: raise ValueError('At least one source path needs to be set.')
+		if len(self.backup_path)  <= 0: raise ValueError('A backup path needs to be set.')
+		if len(self.retains)	  <= 0: raise ValueError('At least one retain option needs to be set.')
