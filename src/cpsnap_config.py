@@ -15,7 +15,7 @@ class Config:
 		backup_path (str): Single backup path (remote, if ssh_path set).
 		ssh_path (str): Path to remote ssh server.
 		ssh_certs_path (str): Path to ssh certs for remote server.
-		retains (list): List of retain configurations.
+		retains (dict): Dictionary of retain configurations.
 	'''
 
 	def __init__(self, config_path: str, c_char: str, delimiter: str):
@@ -32,7 +32,7 @@ class Config:
 			- backup_path (str): Single backup path (remote, if ssh_path set).
 			- ssh_path (str) | None: Path to remote ssh server.
 			- ssh_certs_path (str) | None: Path to ssh certs for remote server.
-			- retains (list): List of retain configurations.
+			- retains (dict): Dictionary of retain configurations.
 
 		Raises:
 			ValueError: An invalid configuration options has been set or a configuration option is missing.
@@ -42,7 +42,7 @@ class Config:
 		self.backup_path = ''
 		self.ssh_path = ''
 		self.ssh_certs_path = ''
-		self.retains = []
+		self.retains = {  }
 
 		with open(config_path) as conf:
 			conf_raw = []
@@ -57,7 +57,7 @@ class Config:
 					case 'backup': self.backup_path = filtered[1]
 					case 'ssh': self.ssh_path = filtered[1]
 					case 'ssh_certs': self.ssh_certs_path = filtered[1]
-					case 'retain': self.retains.append(filtered[1:])
+					case 'retain': self.retains[filtered[1]] = filtered[2:]
 					case _: print(f'Unknown configuration option "{filtered[0]}"')
 
 		if len(self.source_paths) <= 0: raise ValueError("At least one source path needs to be set.")
