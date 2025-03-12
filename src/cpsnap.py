@@ -7,6 +7,7 @@
 
 import os
 import argparse
+import subprocess
 from cpsnap_config import Config, Retain
 import cpsnap_helper
 
@@ -60,6 +61,15 @@ for path in config.source_paths:
 	if not os.path.isdir(path): raise FileNotFoundError(f'The directory "{path}" does not exist.')
 	print(f'- {path}')
 
+# if applicable, test ssh path (with ssh certs)
+ssh_cert_args = [] if config.ssh_certs_path == '' else ['-i', config.ssh_certs_path]
+if config.ssh_path != '':
+	result = subprocess.run(['ssh'] + ssh_cert_args + [config.ssh_path, 'true'], capture_output=True, text=True)
+	if result.returncode != 0: raise ConnectionError(f'\n{result.stderr}')
+	
+	print()
+	print(f'Valid SSH connection @ {config.ssh_path}.')
+
 # create backup parent dir if not exist
 cpsnap_helper.ask_create_r_u_dir(config.backup_path,
 								 f'\nThe backup path {config.backup_path} does not exist.\nCreate it?',
@@ -78,4 +88,4 @@ print(f'Backup directory: {backup_type_path}', '[{n:0{width}d}/{m}]'.format(n=cu
 																			width=len(str(selected_retain.num)),
 																			m=selected_retain.num))
 
-# EXECUTE BACKUP; TODO
+## EXECUTE BACKUP; TODO ##
