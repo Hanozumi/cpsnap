@@ -7,7 +7,8 @@
 
 import os
 import argparse
-import subprocess
+import paramiko
+import getpass
 from cpsnap_config import Config, Retain
 import cpsnap_helper
 
@@ -61,12 +62,21 @@ for path in config.source_paths:
 	if not os.path.isdir(path): raise FileNotFoundError(f'The directory "{path}" does not exist.')
 	print(f'- {path}')
 
-# if applicable, test ssh path (with ssh certs)
-ssh_cert_args = [] if config.ssh_certs_path == '' else ['-i', config.ssh_certs_path]
+# if applicable, connect ssh (with certs)
 if config.ssh_path != '':
-	result = subprocess.run(['ssh'] + ssh_cert_args + [config.ssh_path, 'true'], capture_output=True, text=True)
-	if result.returncode != 0: raise ConnectionError(f'\n{result.stderr}')
-	
+	ssh_username, ssh_hostname = config.ssh_path.split('@')
+	ssh = paramiko.SSHClient()
+	if config.ssh_certs_path != '':
+		try:
+			ssh_key = paramiko.Ed25519Key.from_private_key_file(config.ssh_certs_path)
+		except:
+			raise paramiko.SSHException('ssh_certs needs to point to a valid ed25519 encoded private key.')
+		ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+		ssh.connect(hostname=ssh_hostname, username=ssh_username, pkey=ssh_key)
+	else:
+		ssh_pass = getpass.getpass(f'\nEnter password for {ssh_username}@{ssh_hostname}: ')
+		ssh.connect(hostname=ssh_hostname, username=ssh_username, password=ssh_pass)
+
 	print()
 	print(f'Valid SSH connection @ {config.ssh_path}.')
 
