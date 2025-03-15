@@ -11,18 +11,21 @@ class Retain:
 	'''Helper class to maintain retain options readability.
 
 	Attributes:
+		type (str): Type of retain.
 		num (int): Number of retained backups.
 		mode (str): Backup mode.
 		name_func (str): Selected backup naming function.
 	'''
-	def __init__(self, num: int, mode: str, name_func: str):
+	def __init__(self, type:str, num: int, mode: str, name_func: str):
 		'''Prepare a Retain-object, with given attributes.
 
 		Args:
+			type (str): Type of retain.
 			num (int): Number of retained backups.
 			mode (str): Backup mode.
 			name_func (str): Selected backup naming function.
 		'''
+		self.type = type
 		self.num = num
 		self.mode = mode
 		self.name_func = name_func
@@ -80,7 +83,7 @@ class Config:
 					case 'retain': 
 						if len(filtered) != 5: 
 							raise ValueError(f'Invalid number of retain options for "{filtered[1]}". Needs retain <type> <num> <mode> <name_func>.')
-						self.retains[filtered[1]] = Retain(int(filtered[2]), filtered[3], filtered[4])
+						self.retains[filtered[1]] = Retain(filtered[1], int(filtered[2]), filtered[3], filtered[4])
 					case _: print(f'Unknown configuration option "{filtered[0]}"')
 
 		if len(self.source_paths) <= 0: raise ValueError('At least one source path needs to be set.')
