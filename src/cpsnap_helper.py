@@ -62,15 +62,16 @@ def ask_create_r_u_dir(path: str, query: str, test=False):
 		print('\nDid not create backup folder.\n:: Exiting...')
 		exit(255)
 
-def create_r_u_dir(path:str, test=False):
-	'''Creates directory if it does not already exist.
+def create_r_u_dir(path:str, test=False) -> None:
+	'''Creates ``root and user owned directory`` if it does not already exist.
 	
 	Args:
 		path (str): Path to directory.
 		test (bool): Test mode status.
 	'''
-	print(f':: sudo install -d -m 0770 -o root -g {getpass.getuser()} {path}')
-	if not test:
+	if not os.path.isdir(path):
+		print(f':: sudo install -d -m 0770 -o root -g {getpass.getuser()} {path}')
+		if not test:
 			result = subprocess.run(['sudo', 'install', '-d', '-m', '0770', '-o', 'root', '-g', getpass.getuser(), path],
 						   capture_output=True,
 						   text=True)
