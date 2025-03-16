@@ -7,72 +7,81 @@
 
 import os
 import subprocess
-import getpass
+import paramiko
 
-def query_y_n(query: str, yes_default=True) -> bool:
-	'''Queries the user with a yes/no prompt.
+# Helper Classes
 
-	Args:
-		query (str): The question prompting the users input.
-		yes_default (bool): Sets whether yes or no are the default value.
+class SSH:
+	def __init__(self, client: paramiko.SSHClient, username: str, hostname: str):
+		self.client = client
+		self.username = username
+		self.hostname = hostname
 
-	Returns:
-		out (bool): True for yes and False for no.
+# Folder Management
 
-	Raises:
-		ValueError: An invalid default value has been set.
-	'''
-	
-	valid = { 'yes': True, 'ye': True, 'y': True, 'n': False, 'no': False }
-	if yes_default == None:
-		prompt = ' [y/n] '
-	elif yes_default == True:
-		prompt = ' [Y/n] '
-	elif yes_default == False:
-		prompt = ' [y/N] '
-	else:
-		raise ValueError(f'The input "{yes_default}" is invalid. Can only be True, False, None.')
-	
-	while True:
-		choice = input(query + prompt).lower()
-		if yes_default != None and choice.strip() == '':
-			return yes_default
-		elif choice in valid:
-			return valid[choice]
-		else:
-			print('Incorrect input. Try again.')
-
-def ask_create_r_u_dir(path: str, query: str, test=False):
-	'''Prompts user whether to create directory if it does not already exit.
-
-	Args:
-		path (str): Path to directory.
-		query (str): The question prompting the users input.
-		test (bool): Test mode status.
-	'''
-	query_result = query_y_n(query)
-	if not os.path.isdir(path) and query_result:
-		print(f':: sudo install -d -m 0770 -o root -g {getpass.getuser()} {path}')
-		if not test:
-			result = subprocess.run(['sudo', 'install', '-d', '-m', '0770', '-o', 'root', '-g', getpass.getuser(), path],
-						   capture_output=True,
-						   text=True)
-			if result.stderr != '': print(result.stderr, end='')
-	elif not query_result:
-		print('\nDid not create backup folder.\n:: Exiting...')
-		exit(255)
-
-def create_r_u_dir(path:str, test=False) -> None:
+def create_r_u_dir(path:str, username:str, test=False) -> None:
 	'''Creates ``root and user owned directory`` if it does not already exist.
 	
 	Args:
 		path (str): Path to directory.
+		username (str): Username.
 		test (bool): Test mode status.
 	'''
 	if not os.path.isdir(path):
-		print(f':: sudo install -d -m 0770 -o root -g {getpass.getuser()} {path}')
+		print(f':: sudo install -d -m 0770 -o root -g {username} {path}')
 		if not test:
-			result = subprocess.run(['sudo', 'install', '-d', '-m', '0770', '-o', 'root', '-g', getpass.getuser(), path],
-						   capture_output=True,
-						   text=True)
+			result = subprocess.run(['sudo', 'install', '-d', '-m', '0770', '-o', 'root', '-g', username, path],
+									capture_output=True,
+									text=True)
 			if result.stderr != '': print(result.stderr, end='')
+
+def create_r_u_dir_ssh(ssh:SSH, path:str, test=False) -> None:
+	'''Creates ``root and user owned directory on remote server`` if it does not already exist.
+	
+	Args:
+		ssh (SSH): SSH object.
+		path (str): Path to directory.
+		test (bool): Test mode status.
+	'''
+	stdin, stdout, stderr = ssh.client.exec_command(f'[ -d {path} ]; echo $?'); stdin.close()
+	# stdout contains $? != 0 if folder not exist; python interprets any number != 0 as True, therefore with double negation...
+	dir_not_exist = bool(int(stdout.read().decode()))
+	if dir_not_exist:
+		print(f'(ssh) :: sudo install -d -m 0770 -o root -g {ssh.username} {ssh.username}@{ssh.hostname}:{path}')
+		if not test:
+			stdin, stdout, stderr = ssh.client.exec_command(f'sudo install -d -m 0770 -o root -g {ssh.username} {path}'); stdin.close()
+			err = stderr.read().decode().strip()
+			if err != '': print(err, end='')
+
+# SSH
+
+def connect_ssh(ssh_path: str, ssh_certs_path: str) -> SSH | None:
+	'''Creates and returns an SSH Object if path and certs are set.
+	
+	Args:
+		ssh_path (str): Required path for valid SSH Client creation. If empty string, then no client is created.
+		ssh_certs_path (str): Required path to SSH certificates.
+
+	Returns:
+		out (SSH): Valid and connected SSH client with username and hostname.
+
+	Raises:
+		SSHException: SSH connection could not be established.
+	'''
+	if ssh_path != '':
+		if ssh_certs_path != '':
+			ssh_username, ssh_hostname = ssh_path.split('@')
+			ssh = paramiko.SSHClient()
+			try:
+				ssh_key = paramiko.Ed25519Key.from_private_key_file(ssh_certs_path)
+			except:
+				raise paramiko.SSHException('"ssh_certs" needs to point to a valid ed25519 encoded private key.')
+			ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+			ssh.connect(hostname=ssh_hostname, username=ssh_username, pkey=ssh_key)
+			print()
+			print(f'Valid SSH connection @ {ssh_path}.')
+			return SSH(ssh, ssh_username, ssh_hostname)
+		else:
+			raise paramiko.SSHException('"ssh_certs" needs to be set.')
+		
+	return None
