@@ -7,7 +7,6 @@
 
 import os
 import argparse
-import paramiko
 import getpass
 from cpsnap_config import Config, Retain
 import cpsnap_helper
@@ -62,40 +61,36 @@ for path in config.source_paths:
 	if not os.path.isdir(path): raise FileNotFoundError(f'The directory "{path}" does not exist.')
 	print(f'- {path}')
 
-# if applicable, connect ssh (with certs)
-if config.ssh_path != '':
-	ssh_username, ssh_hostname = config.ssh_path.split('@')
-	ssh = paramiko.SSHClient()
-	if config.ssh_certs_path != '':
-		try:
-			ssh_key = paramiko.Ed25519Key.from_private_key_file(config.ssh_certs_path)
-		except:
-			raise paramiko.SSHException('ssh_certs needs to point to a valid ed25519 encoded private key.')
-		ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-		ssh.connect(hostname=ssh_hostname, username=ssh_username, pkey=ssh_key)
-	else:
-		ssh_pass = getpass.getpass(f'\nEnter password for {ssh_username}@{ssh_hostname}: ')
-		ssh.connect(hostname=ssh_hostname, username=ssh_username, password=ssh_pass)
+# if applicable, connect ssh with certs
+ssh = cpsnap_helper.connect_ssh(config.ssh_path, config.ssh_certs_path)
+print()
+
+# make dirs
+type_backup_count = -1
+backup_type_path = os.path.join(config.backup_path, selected_retain.type)
+if ssh:
+	cpsnap_helper.create_r_u_dir_ssh(ssh, config.backup_path, args.t)
+	cpsnap_helper.create_r_u_dir_ssh(ssh, backup_type_path, args.t)
+
+	if not args.t:
+		stdin, stdout, stderr = ssh.client.exec_command(f'echo $(ls -1 {backup_type_path} | wc -l)'); stdin.close()
+		type_backup_count = int(stdout.read().decode())
 
 	print()
-	print(f'Valid SSH connection @ {config.ssh_path}.')
+	print(f'Remote backup directory: {ssh.username}@{ssh.hostname}:{backup_type_path}', '[{n:0{width}d}/{m}]'.format(n=type_backup_count,
+																												  	 width=len(str(selected_retain.num)),
+																													 m=selected_retain.num))
+else:
+	local_username = getpass.getuser()
+	cpsnap_helper.create_r_u_dir(config.backup_path, local_username, args.t)
+	cpsnap_helper.create_r_u_dir(backup_type_path, local_username, args.t)
 
-# create backup parent dir if not exist
-cpsnap_helper.ask_create_r_u_dir(config.backup_path,
-								 f'\nThe backup path {config.backup_path} does not exist.\nCreate it?',
-								 args.t)
+	if not args.t:
+		type_backup_count = len(os.listdir(backup_type_path))
 
-# create backup type dir if not exist
-backup_type_path = os.path.join(config.backup_path, args.retain)
-cpsnap_helper.create_r_u_dir(backup_type_path, args.t)
-
-# get current backup count
-current_type_backup_count = -1
-if not args.t:
-	current_type_backup_count = len(os.listdir(backup_type_path))
-
-print(f'Backup directory: {backup_type_path}', '[{n:0{width}d}/{m}]'.format(n=current_type_backup_count,
-																			width=len(str(selected_retain.num)),
-																			m=selected_retain.num))
+	print()
+	print(f'Backup directory: {backup_type_path}', '[{n:0{width}d}/{m}]'.format(n=type_backup_count,
+																			 	width=len(str(selected_retain.num)),
+																				m=selected_retain.num))
 
 ## EXECUTE BACKUP; TODO ##
