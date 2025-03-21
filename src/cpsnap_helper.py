@@ -27,6 +27,9 @@ def create_r_u_dir(path:str, username:str, test=False) -> None:
 		path (str): Path to directory.
 		username (str): Username.
 		test (bool): Test mode status.
+
+	Raises:
+		IOError: Folder creation failed.
 	'''
 	if not os.path.isdir(path):
 		print(f':: sudo install -d -m 0770 -o root -g {username} {path}')
@@ -34,7 +37,7 @@ def create_r_u_dir(path:str, username:str, test=False) -> None:
 			result = subprocess.run(['sudo', 'install', '-d', '-m', '0770', '-o', 'root', '-g', username, path],
 									capture_output=True,
 									text=True)
-			if result.stderr != '': print(result.stderr, end='')
+			if result.stderr != '': raise IOError(result.stderr)
 
 def create_r_u_dir_ssh(ssh:SSH, path:str, test=False) -> None:
 	'''Creates ``root and user owned directory on remote server`` if it does not already exist.
@@ -43,6 +46,9 @@ def create_r_u_dir_ssh(ssh:SSH, path:str, test=False) -> None:
 		ssh (SSH): SSH object.
 		path (str): Path to directory.
 		test (bool): Test mode status.
+
+	Raises:
+		IOError: Folder creation failed.
 	'''
 	stdin, stdout, stderr = ssh.client.exec_command(f'[ -d {path} ]; echo $?'); stdin.close()
 	# stdout contains $? != 0 if folder not exist; python interprets any number != 0 as True, therefore with double negation...
@@ -52,7 +58,7 @@ def create_r_u_dir_ssh(ssh:SSH, path:str, test=False) -> None:
 		if not test:
 			stdin, stdout, stderr = ssh.client.exec_command(f'sudo install -d -m 0770 -o root -g {ssh.username} {path}'); stdin.close()
 			err = stderr.read().decode().strip()
-			if err != '': print(err, end='')
+			if err != '': raise IOError(err)
 
 # SSH
 
