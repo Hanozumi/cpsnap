@@ -5,11 +5,11 @@
 	Copyright © 2025 Hanozumi
 '''
 
-def date():
-	return
+from datetime import datetime
 
-def datetime():
-	return
-
-def weekday():
-	return
+name_funcs = {
+	'none':		lambda: '',
+	'date':		lambda:	datetime.now().strftime('%Y-%m-%d'),
+	'datetime':	lambda:	datetime.now().strftime('%Y-%m-%d-%H_%M-%S'),
+	'weekday':	lambda:	datetime.now().strftime('%Y-%m-%d_%A')
+}
