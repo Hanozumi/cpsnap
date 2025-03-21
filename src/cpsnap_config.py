@@ -35,6 +35,7 @@ class Config:
 
 	Attributes:
 		source_paths (list): List of source paths.
+		excludes (list): List of excluded folders and files
 		backup_path (str): Single backup path (remote, if ssh_path set).
 		ssh_path (str): Path to remote ssh server.
 		ssh_certs_path (str): Path to ssh certs for remote server.
@@ -52,6 +53,7 @@ class Config:
 		Returns:
 			out (Config): Config object including
 			- source_paths (list): List of source paths.
+			- excludes (list): List of excluded folders and files
 			- backup_path (str): Single backup path (remote, if ssh_path set).
 			- ssh_path (str) | None: Path to remote ssh server.
 			- ssh_certs_path (str) | None: Path to ssh certs for remote server.
@@ -62,6 +64,7 @@ class Config:
 		'''
 
 		self.source_paths = []
+		self.excludes = [] 				# !!!
 		self.backup_path = ''
 		self.ssh_path = ''
 		self.ssh_certs_path = ''
@@ -77,6 +80,7 @@ class Config:
 				filtered = list(filter(lambda x: x.strip(), line))
 				match filtered[0]:
 					case 'source': self.source_paths.append(filtered[1])
+					case 'excludes': self.excludes = [e.strip() for e in filtered[1].split(',')]
 					case 'backup': self.backup_path = filtered[1]
 					case 'ssh': self.ssh_path = filtered[1]
 					case 'ssh_certs': self.ssh_certs_path = filtered[1]
