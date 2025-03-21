@@ -12,8 +12,9 @@ import paramiko
 # Helper Classes
 
 class SSH:
-	def __init__(self, client: paramiko.SSHClient, username: str, hostname: str):
+	def __init__(self, client: paramiko.SSHClient, certs_path: str, username: str, hostname: str):
 		self.client = client
+		self.certs_path = certs_path
 		self.username = username
 		self.hostname = hostname
 
@@ -80,7 +81,7 @@ def connect_ssh(ssh_path: str, ssh_certs_path: str) -> SSH | None:
 			ssh.connect(hostname=ssh_hostname, username=ssh_username, pkey=ssh_key)
 			print()
 			print(f'Valid SSH connection @ {ssh_path}.')
-			return SSH(ssh, ssh_username, ssh_hostname)
+			return SSH(ssh, ssh_certs_path, ssh_username, ssh_hostname)
 		else:
 			raise paramiko.SSHException('"ssh_certs" needs to be set.')
 		
